@@ -1,1 +1,5 @@
-flask
+# Dependencias base
+flask==3.0.0
+
+# Dependencias de testing
+pytest==8.3.0
