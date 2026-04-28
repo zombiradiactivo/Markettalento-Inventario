@@ -48,18 +48,18 @@ def test_api_productos(client):
     data = json.loads(response.data)
     assert data['status'] == 'success'
     assert 'productos' in data
-    assert len(data['productos']) == 11  # 11 productos en BD
+    assert len(data['productos']) == 25  # 25 productos en 5 tablas
 
 
 def test_api_producto_existente(client):
     """Verifica obtención de producto específico"""
-    response = client.get('/api/producto/Leche')
+    response = client.get('/api/producto/Leche Entera')
     assert response.status_code == 200
     
     data = json.loads(response.data)
     assert data['status'] == 'success'
-    assert data['producto']['nombre'] == 'Leche'
-    assert data['producto']['id'] == 'PROD001'
+    assert data['producto']['nombre'] == 'Leche Entera'
+    assert data['producto']['id'] == '1'
 
 
 def test_api_producto_no_existente(client):

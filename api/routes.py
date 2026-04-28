@@ -43,7 +43,8 @@ def register_routes(app):
         productos_detectados = deteccion.get("productos", [])
         
         productos_analizados = []
-        from models import product_database
+        from models.product_database import get_product_database
+        product_database = get_product_database()
         
         for producto_detectado in productos_detectados:
             nombre = producto_detectado["nombre"]

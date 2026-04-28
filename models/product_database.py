@@ -1,74 +1,175 @@
 """
-Módulo de modelos de productos - Base de datos simulada
+Módulo de modelos de productos - Tablas separadas por categoria (SQLAlchemy puro)
 """
+from models.database import SessionLocal, Refrigerados, Conservas, Bebidas, Panaderia, Despensa, CATEGORY_MODELS
+import json
 
-# Base de datos simulada de productos
-product_database = {
-    "Leche": {
-        "id": "PROD001", "nombre": "Leche", "categoria": "Lácteos",
-        "precio": 1.20, "unidad": "litro", "stock_minimo": 5,
-        "stock_maximo": 30, "tiempo_reposicion": 2,
-        "historial_ventas": [3, 4, 5, 2, 6, 4, 5, 3, 4, 6, 5, 4, 3, 5, 4, 6, 3, 5, 4, 5]
-    },
-    "Huevos": {
-        "id": "PROD002", "nombre": "Huevos", "categoria": "Huevos",
-        "precio": 2.50, "unidad": "docena", "stock_minimo": 3,
-        "stock_maximo": 20, "tiempo_reposicion": 1,
-        "historial_ventas": [2, 3, 2, 4, 3, 2, 3, 4, 2, 3, 4, 2, 3, 2, 4, 3, 2, 3, 2, 4]
-    },
-    "Pan": {
-        "id": "PROD003", "nombre": "Pan", "categoria": "Panadería",
-        "precio": 0.90, "unidad": "unidad", "stock_minimo": 10,
-        "stock_maximo": 50, "tiempo_reposicion": 1,
-        "historial_ventas": [8, 10, 9, 7, 11, 8, 10, 9, 8, 12, 10, 9, 8, 11, 9, 10, 8, 9, 10, 11]
-    },
-    "Agua": {
-        "id": "PROD004", "nombre": "Agua", "categoria": "Bebidas",
-        "precio": 0.60, "unidad": "botella", "stock_minimo": 15,
-        "stock_maximo": 100, "tiempo_reposicion": 3,
-        "historial_ventas": [10, 12, 11, 9, 13, 10, 12, 11, 10, 14, 12, 11, 10, 13, 11, 12, 10, 11, 12, 13]
-    },
-    "Café": {
-        "id": "PROD005", "nombre": "Café", "categoria": "Bebidas",
-        "precio": 4.50, "unidad": "paquete", "stock_minimo": 3,
-        "stock_maximo": 25, "tiempo_reposicion": 5,
-        "historial_ventas": [1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 3, 1, 2, 1, 3, 2, 1, 2, 1, 3]
-    },
-    "Arroz": {
-        "id": "PROD006", "nombre": "Arroz", "categoria": "Alimentos básicos",
-        "precio": 1.80, "unidad": "kg", "stock_minimo": 10,
-        "stock_maximo": 60, "tiempo_reposicion": 4,
-        "historial_ventas": [3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 3, 5]
-    },
-    "Aceite": {
-        "id": "PROD007", "nombre": "Aceite", "categoria": "Aceites",
-        "precio": 4.20, "unidad": "litro", "stock_minimo": 8,
-        "stock_maximo": 40, "tiempo_reposicion": 4,
-        "historial_ventas": [2, 3, 2, 4, 3, 2, 3, 2, 4, 3, 2, 3, 2, 4, 3, 2, 3, 4, 2, 3]
-    },
-    "Azúcar": {
-        "id": "PROD008", "nombre": "Azúcar", "categoria": "Alimentos básicos",
-        "precio": 1.50, "unidad": "kg", "stock_minimo": 10,
-        "stock_maximo": 50, "tiempo_reposicion": 3,
-        "historial_ventas": [4, 5, 4, 6, 5, 4, 5, 6, 4, 5, 6, 4, 5, 4, 6, 5, 4, 5, 4, 6]
-    },
-    "Harina": {
-        "id": "PROD009", "nombre": "Harina", "categoria": "Alimentos básicos",
-        "precio": 1.20, "unidad": "kg", "stock_minimo": 10,
-        "stock_maximo": 60, "tiempo_reposicion": 3,
-        "historial_ventas": [3, 4, 3, 5, 4, 3, 4, 5, 3, 4, 5, 3, 4, 3, 5, 4, 3, 4, 3, 5]
-    },
-    "Galletas": {
-        "id": "PROD010", "nombre": "Galletas", "categoria": "Snacks",
-        "precio": 2.30, "unidad": "paquete", "stock_minimo": 12,
-        "stock_maximo": 45, "tiempo_reposicion": 2,
-        "historial_ventas": [5, 6, 5, 7, 6, 5, 6, 7, 5, 6, 7, 5, 6, 5, 7, 6, 5, 6, 5, 7]
-    },
-    "Cereal": {
-        "id": "PROD011", "nombre": "Cereal", "categoria": "Desayuno",
-        "precio": 3.80, "unidad": "caja", "stock_minimo": 6,
-        "stock_maximo": 30, "tiempo_reposicion": 5,
-        "historial_ventas": [2, 3, 2, 4, 3, 2, 3, 4, 2, 3, 4, 2, 3, 2, 4, 3, 2, 3, 2, 4]
-    }
-}
 
+def get_product_by_name(nombre):
+    """Obtiene un producto por su nombre buscando en todas las tablas"""
+    session = SessionLocal()
+    try:
+        for model in [Refrigerados, Conservas, Bebidas, Panaderia, Despensa]:
+            product = session.query(model).filter_by(nombre=nombre).first()
+            if product:
+                return product.to_dict()
+        return None
+    finally:
+        session.close()
+
+
+def get_all_products_db():
+    """Obtiene todos los productos de todas las tablas"""
+    session = SessionLocal()
+    try:
+        products = []
+        for model in [Refrigerados, Conservas, Bebidas, Panaderia, Despensa]:
+            products.extend([p.to_dict() for p in session.query(model).all()])
+        return products
+    finally:
+        session.close()
+
+
+def get_products_by_category(categoria):
+    """Obtiene productos filtrados por categoria"""
+    model = CATEGORY_MODELS.get(categoria)
+    if model:
+        session = SessionLocal()
+        try:
+            return [p.to_dict() for p in session.query(model).all()]
+        finally:
+            session.close()
+    return []
+
+
+def add_product(data):
+    """Agrega un nuevo producto a la tabla correspondiente"""
+    categoria = data.get('categoria')
+    model = CATEGORY_MODELS.get(categoria)
+
+    if not model:
+        raise ValueError(f"Categoria desconocida: {categoria}")
+
+    session = SessionLocal()
+    try:
+        product = model(
+            id=data['id'],
+            nombre=data['nombre'],
+            precio=data['precio'],
+            unidad=data['unidad'],
+            stock_minimo=data['stock_minimo'],
+            stock_maximo=data['stock_maximo'],
+            tiempo_reposicion=data['tiempo_reposicion'],
+            historial_ventas=json.dumps(data['historial_ventas'])
+        )
+        session.add(product)
+        session.commit()
+        return product.to_dict()
+    finally:
+        session.close()
+
+
+def update_product_sales(nombre, historial_ventas):
+    """Actualiza el historial de ventas de un producto"""
+    session = SessionLocal()
+    try:
+        for model in [Refrigerados, Conservas, Bebidas, Panaderia, Despensa]:
+            product = session.query(model).filter_by(nombre=nombre).first()
+            if product:
+                product.historial_ventas = json.dumps(historial_ventas)
+                session.commit()
+                return product.to_dict()
+        return None
+    finally:
+        session.close()
+
+
+def get_product_database():
+    """Retorna todos los productos como diccionario (para compatibilidad)"""
+    products = get_all_products_db()
+    result = {}
+    for p in products:
+        result[p['nombre']] = p
+    return result
+
+
+def update_product(nombre_original, data):
+    """Actualiza un producto existente"""
+    session = SessionLocal()
+    try:
+        product = None
+        old_model = None
+        for model in [Refrigerados, Conservas, Bebidas, Panaderia, Despensa]:
+            product = session.query(model).filter_by(nombre=nombre_original).first()
+            if product:
+                old_model = model
+                break
+
+        if not product:
+            return None
+
+        old_categoria = None
+        for cat, mod in CATEGORY_MODELS.items():
+            if mod == old_model:
+                old_categoria = cat
+                break
+
+        new_categoria = data.get('categoria', old_categoria)
+
+        if new_categoria != old_categoria:
+            session.delete(product)
+            session.commit()
+
+            new_model = CATEGORY_MODELS.get(new_categoria)
+            if not new_model:
+                raise ValueError(f"Categoria desconocida: {new_categoria}")
+
+            historial = data.get('historial_ventas', [])
+            if isinstance(historial, str):
+                historial = json.loads(historial)
+
+            new_product = new_model(
+                id=data.get('id', product.id),
+                nombre=data['nombre'],
+                precio=data['precio'],
+                unidad=data['unidad'],
+                stock_minimo=data['stock_minimo'],
+                stock_maximo=data['stock_maximo'],
+                tiempo_reposicion=data['tiempo_reposicion'],
+                historial_ventas=json.dumps(historial)
+            )
+            session.add(new_product)
+            session.commit()
+            return new_product.to_dict()
+        else:
+            product.nombre = data['nombre']
+            product.precio = data['precio']
+            product.unidad = data['unidad']
+            product.stock_minimo = data['stock_minimo']
+            product.stock_maximo = data['stock_maximo']
+            product.tiempo_reposicion = data['tiempo_reposicion']
+            if 'historial_ventas' in data:
+                historial = data['historial_ventas']
+                product.historial_ventas = json.dumps(historial) if isinstance(historial, list) else historial
+            session.commit()
+            return product.to_dict()
+    finally:
+        session.close()
+
+
+def delete_product(nombre):
+    """Elimina un producto por su nombre"""
+    session = SessionLocal()
+    try:
+        for model in [Refrigerados, Conservas, Bebidas, Panaderia, Despensa]:
+            product = session.query(model).filter_by(nombre=nombre).first()
+            if product:
+                session.delete(product)
+                session.commit()
+                return True
+        return False
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()

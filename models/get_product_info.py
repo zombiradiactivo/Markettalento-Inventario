@@ -1,6 +1,6 @@
-from models import product_database
+from models.product_database import get_product_by_name
+
 
 def get_product_info(product_name):
     """Obtiene la información de un producto por su nombre"""
-    return product_database.get(product_name, None)
-
+    return get_product_by_name(product_name)
