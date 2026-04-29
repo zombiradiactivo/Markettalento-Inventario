@@ -5,6 +5,22 @@ import streamlit as st
 import json
 from models import database as db
 import os
+import tkinter as tk
+from tkinter import filedialog
+
+
+def open_file_dialog():
+    """Abre el explorador de archivos y retorna la ruta seleccionada"""
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    file_path = filedialog.askopenfilename(
+        title="Seleccionar base de datos",
+        filetypes=[("SQLite Database", "*.db"), ("Todos los archivos", "*.*")]
+    )
+    root.destroy()
+    return file_path
+
 
 # Importar modelos directamente del módulo para que se actualicen dinámicamente
 SessionLocal = db.SessionLocal
@@ -390,33 +406,50 @@ def main():
             st.rerun()
 
         # Cargar base de datos existente
-        uploaded_file = st.file_uploader("Cargar BD", type=['db'], key="db_uploader_cyber")
+        col_upload, col_local = st.columns([2, 1])
 
-        if uploaded_file is not None:
-            # 1. Creamos un identificador único para procesar este archivo una sola vez
-            file_id = f"processed_{uploaded_file.name}_{uploaded_file.size}"
-            
-            if st.session_state.get("last_processed_file") != file_id:
-                temp_path = f"temp_{uploaded_file.name}"
+        with col_upload:
+            uploaded_file = st.file_uploader("Cargar BD (upload)", type=['db'], key="db_uploader_cyber")
+
+            if uploaded_file is not None:
+                # 1. Creamos un identificador único para procesar este archivo una sola vez
+                file_id = f"processed_{uploaded_file.name}_{uploaded_file.size}"
                 
-                # Escribir el archivo
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+                if st.session_state.get("last_processed_file") != file_id:
+                    temp_path = f"temp_{uploaded_file.name}"
+                    
+                    # Escribir el archivo
+                    with open(temp_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
 
-                # 2. Cerrar conexiones anteriores de forma segura
-                if db.engine:
-                    db.engine.dispose()
+                    # 2. Cerrar conexiones anteriores de forma segura
+                    if db.engine:
+                        db.engine.dispose()
 
-                # 3. Cambiar base de datos
-                switch_database(temp_path)
+                    # 3. Cambiar base de datos
+                    switch_database(temp_path)
 
-                # 4. Actualizar estados
-                st.session_state.current_db = temp_path
-                # Guardamos que ya procesamos este archivo específico
-                st.session_state.last_processed_file = file_id
-                
-                st.success("BD cargada exitosamente")
-                st.rerun()
+                    # 4. Actualizar estados
+                    st.session_state.current_db = temp_path
+                    # Guardamos que ya procesamos este archivo específico
+                    st.session_state.last_processed_file = file_id
+                    
+                    st.success("BD cargada exitosamente")
+                    st.rerun()
+
+        with col_local:
+            st.markdown("**Cargar BD Local**")
+            if st.button("Explorar...", key="btn_browse_cyber", use_container_width=True):
+                selected_path = open_file_dialog()
+                if selected_path:
+                    if db.engine:
+                        db.engine.dispose()
+                    switch_database(selected_path)
+                    st.session_state.current_db = selected_path
+                    st.success("BD local cargada")
+                    st.rerun()
+                else:
+                    st.info("No se seleccionó archivo")
 
         st.divider()
 
