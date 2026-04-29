@@ -3,7 +3,10 @@ Sistema de Inventario Inteligente - Streamlit App (SQLAlchemy puro)
 """
 import streamlit as st
 import json
-from models.database import SessionLocal, Refrigerados, Conservas, Bebidas, Panaderia, Despensa, CATEGORY_MODELS
+from models.database import SessionLocal, Refrigerados, Conservas, Bebidas, Panaderia, Despensa, CATEGORY_MODELS, init_db
+
+# Inicializar la base de datos y crear las tablas
+init_db()
 from models.product_database import get_all_products_db, get_product_by_name, add_product, delete_product, update_product
 from models.get_sales_history import get_sales_history
 from services import detect_products, calculate_inventory_metrics, calculate_inventory_value, predict_stock_outage
