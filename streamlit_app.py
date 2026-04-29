@@ -3,10 +3,30 @@ Sistema de Inventario Inteligente - Streamlit App (SQLAlchemy puro)
 """
 import streamlit as st
 import json
-from models.database import SessionLocal, Refrigerados, Conservas, Bebidas, Panaderia, Despensa, CATEGORY_MODELS, init_db
+from models import database as db
+import os
 
-# Inicializar la base de datos y crear las tablas
-init_db()
+# Importar modelos directamente del módulo para que se actualicen dinámicamente
+SessionLocal = db.SessionLocal
+Refrigerados = db.Refrigerados
+Conservas = db.Conservas
+Bebidas = db.Bebidas
+Panaderia = db.Panaderia
+Despensa = db.Despensa
+CATEGORY_MODELS = db.CATEGORY_MODELS
+init_db = db.init_db
+seed_database = db.seed_database
+create_new_database = db.create_new_database
+switch_database = db.switch_database
+get_current_db_path = db.get_current_db_path
+DB_PATH = db.DB_PATH
+
+# Inicializar session state para la base de datos
+if 'db_initialized' not in st.session_state:
+    if not os.path.exists("inventario.db"):
+        init_db()
+    st.session_state.db_initialized = True
+    st.session_state.current_db = DB_PATH
 from models.product_database import get_all_products_db, get_product_by_name, add_product, delete_product, update_product
 from models.get_sales_history import get_sales_history
 from services import detect_products, calculate_inventory_metrics, calculate_inventory_value, predict_stock_outage
@@ -43,7 +63,7 @@ st.markdown("""
 
 def get_session():
     """Obtiene una nueva sesion de base de datos"""
-    return SessionLocal()
+    return db.SessionLocal()
 
 
 def main():
@@ -58,6 +78,61 @@ def main():
     # Sidebar - Panel de Control
     with st.sidebar:
         st.header("Panel de Control")
+
+        # Gestión de base de datos
+        st.subheader("Base de Datos")
+        st.caption(f"Actual: {st.session_state.current_db}")
+
+        # Botón para crear base de datos VACÍA
+        if st.button("Crear BD Vacía", use_container_width=True, key="btn_empty_db"):
+            if db.engine:
+                db.engine.dispose()
+            create_new_database()
+            st.session_state.current_db = DB_PATH
+            st.success("Base de datos vacía creada")
+            st.rerun()
+
+        # Botón para crear base de datos CON productos por defecto
+        if st.button("Crear BD con Productos", use_container_width=True, key="btn_seed_db"):
+            if db.engine:
+                db.engine.dispose()
+            create_new_database()
+            seed_database()
+            st.session_state.current_db = DB_PATH
+            st.success("Base de datos con productos creada")
+            st.rerun()
+
+        # Cargar base de datos existente
+        uploaded_file = st.file_uploader("Cargar BD", type=['db'], key="db_uploader_cyber")
+
+        if uploaded_file is not None:
+            # 1. Creamos un identificador único para procesar este archivo una sola vez
+            file_id = f"processed_{uploaded_file.name}_{uploaded_file.size}"
+            
+            if st.session_state.get("last_processed_file") != file_id:
+                temp_path = f"temp_{uploaded_file.name}"
+                
+                # Escribir el archivo
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                # 2. Cerrar conexiones anteriores de forma segura
+                if db.engine:
+                    db.engine.dispose()
+
+                # 3. Cambiar base de datos
+                switch_database(temp_path)
+
+                # 4. Actualizar estados
+                st.session_state.current_db = temp_path
+                # Guardamos que ya procesamos este archivo específico
+                st.session_state.last_processed_file = file_id
+                
+                st.success("BD cargada exitosamente")
+                st.rerun()
+
+        st.divider()
+
         menu_option = st.selectbox(
             "Selecciona una opcion",
             ["Inicio", "Ver Productos por Categoría", "Gestionar Productos", "Analizar Inventario", "Recomendaciones"]
