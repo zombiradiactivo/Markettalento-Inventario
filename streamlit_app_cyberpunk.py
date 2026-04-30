@@ -911,18 +911,22 @@ def show_simulation():
                 'stock_max': p['stock_maximo'],
                 'lead_time': p['tiempo_reposicion'],
                 'avg_sales': avg_sales,
+                'price': p['precio'],
                 'historial_ventas': p['historial_ventas'],
                 'pending_orders': [],
                 'total_sales': 0,
+                'total_earnings': 0.0,
                 'stockout_days': 0
             }
 
         # Datos
         sim_days = []
         total_sales_list = []
+        daily_earnings_list = []
         total_stock_list = []
         stockout_list = []
         orders_list = []
+        last_day_transactions = []
 
         # Elementos visuales
         progress_bar = st.progress(0)
@@ -934,9 +938,11 @@ def show_simulation():
 
         for day in range(1, days + 1):
             daily_sales = 0
+            daily_earnings = 0.0
             daily_stock = 0
             daily_stockouts = 0
             daily_orders = 0
+            day_transactions = []
 
             # Procesar órdenes
             for pid, state in product_states.items():
@@ -963,6 +969,20 @@ def show_simulation():
                 daily_sales += sales
                 daily_stock += state['stock']
 
+                # Calcular ganancias
+                earnings = sales * state['price']
+                daily_earnings += earnings
+                state['total_earnings'] += earnings
+
+                # Registrar transacción para ticket
+                if sales > 0:
+                    day_transactions.append({
+                        'producto': state['name'],
+                        'cantidad': sales,
+                        'precio_unitario': state['price'],
+                        'subtotal': earnings
+                    })
+
                 if state['stock'] < state['stock_min']:
                     state['stockout_days'] += 1
                     daily_stockouts += 1
@@ -976,16 +996,18 @@ def show_simulation():
             # Registrar
             sim_days.append(day)
             total_sales_list.append(daily_sales)
+            daily_earnings_list.append(daily_earnings)
             total_stock_list.append(daily_stock)
             stockout_list.append(daily_stockouts)
             orders_list.append(daily_orders)
+            last_day_transactions = day_transactions
 
             # Actualizar UI
             progress_bar.progress(day / days)
             status_container.markdown(f"""
             <div style="font-family: 'Share Tech Mono', monospace; color: #00f0ff; border: 1px solid #00f0ff; padding: 10px; border-radius: 5px;">
                 <h3>>> CYCLE {day}/{days}</h3>
-                <p>VENTAS: {daily_sales} unidades | STOCK: {daily_stock} | QUIEBRES: {daily_stockouts} | ÓRDENES: {daily_orders}</p>
+                <p>VENTAS: {daily_sales} unidades | GANANCIAS: ${daily_earnings:.2f} | STOCK: {daily_stock} | QUIEBRES: {daily_stockouts} | ÓRDENES: {daily_orders}</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1009,27 +1031,34 @@ def show_simulation():
         </h3>
         """, unsafe_allow_html=True)
 
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         with col1:
             st.metric("Ventas Totales", sum(total_sales_list))
         with col2:
-            st.metric("Stock Promedio", f"{total_stock_list[-1] / len(product_states):.1f}")
+            st.metric("Ganancias Totales", f"${sum(daily_earnings_list):.2f}")
         with col3:
-            st.metric("Días Quiebre", sum(stockout_list))
+            st.metric("Stock Promedio", f"{total_stock_list[-1] / len(product_states):.1f}")
         with col4:
+            st.metric("Días Quiebre", sum(stockout_list))
+        with col5:
             st.metric("Órdenes", sum(orders_list))
 
         # Gráficos
         df_final = pd.DataFrame({
             'Día': sim_days,
             'Ventas': total_sales_list,
+            'Ganancias': daily_earnings_list,
             'Stock': total_stock_list,
             'Quiebres': stockout_list,
             'Órdenes': orders_list
         })
 
-        st.line_chart(df_final.set_index('Día')[['Ventas', 'Stock']])
+        st.line_chart(df_final.set_index('Día')[['Ventas', 'Ganancias', 'Stock']])
         st.bar_chart(df_final.set_index('Día')['Quiebres'])
+
+        # Gráfico de ganancias
+        st.subheader("Ganancias Diarias")
+        st.line_chart(df_final.set_index('Día')['Ganancias'])
 
         # Stats por producto
         st.markdown("""
@@ -1049,6 +1078,18 @@ def show_simulation():
                 'ÓRDENES': len(state['pending_orders'])
             })
         st.dataframe(pd.DataFrame(product_stats), use_container_width=True)
+
+        # Ticket de compra - Vista previa
+        st.subheader("Ticket de Compra - Vista Previa (Último Día)")
+        if last_day_transactions:
+            df_ticket = pd.DataFrame(last_day_transactions)
+            total_ticket = df_ticket['subtotal'].sum()
+            df_ticket['precio_unitario'] = df_ticket['precio_unitario'].apply(lambda x: f"${x:.2f}")
+            df_ticket['subtotal'] = df_ticket['subtotal'].apply(lambda x: f"${x:.2f}")
+            st.dataframe(df_ticket[['producto', 'cantidad', 'precio_unitario', 'subtotal']], use_container_width=True)
+            st.markdown(f"**Total del Ticket: ${total_ticket:.2f}**")
+        else:
+            st.info("No hubo ventas el último día")
 
 
 if __name__ == "__main__":
