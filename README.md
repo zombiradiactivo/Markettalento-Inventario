@@ -118,10 +118,10 @@ Este proyecto utiliza IA como **copiloto** siguiendo el enfoque de "IA as copilo
 
 ### Dashboard Streamlit (Estándar)
 
-<img src="img/Dashboard_Streamlit_Estandar.png" alt="Dashboard_Streamlit_Estandar" width="500" />
+<img src="img/Dashboard_Streamlit_Estandar.png" alt="Dashboard_Streamlit_Estandar" width="700" />
 
 ### Dashboard Streamlit (Cyberpunk)
-<img src="img/Dashboard_Streamlit_Cyberpunk.png" alt="Dashboard_Streamlit_Cyberpunk" width="500" />
+<img src="img/Dashboard_Streamlit_Cyberpunk.png" alt="Dashboard_Streamlit_Cyberpunk" width="700" />
 
 ### Pipeline CI/CD (GitHub Actions)
 *Captura pendiente de añadir*
