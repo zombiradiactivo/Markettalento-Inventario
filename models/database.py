@@ -289,10 +289,10 @@ def seed_database():
 
 def switch_database(db_path=None):
     """
-    Cambia la base de datos actual. 
+    Cambia la base de datos actual.
     """
-    global DB_PATH, engine
-    
+    global DB_PATH
+
     if engine:
         engine.dispose()
 
@@ -312,12 +312,12 @@ def create_new_database():
     """
     Llama a esto solo cuando quieras empezar una DB desde cero (exponencial)
     """
-    global DB_PATH, engine
+    global DB_PATH
     if engine:
         engine.dispose()
-    
+
     DB_PATH = get_next_new_path('inventario.db')
-    
+
     init_engine(DB_PATH)
     init_db()
     return DB_PATH
